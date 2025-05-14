@@ -5,8 +5,6 @@ import {
     Prompts,
     Sender,
     Welcome,
-    useXAgent,
-    useXChat,
   } from '@ant-design/x';
   import React, { useEffect } from 'react';
   
@@ -16,13 +14,16 @@ import {
     EllipsisOutlined,
     FireOutlined,
     HeartOutlined,
+    MenuFoldOutlined,
+    MenuUnfoldOutlined,
     PaperClipOutlined,
     PlusOutlined,
     ReadOutlined,
     ShareAltOutlined,
+    EditOutlined,
     SmileOutlined,
   } from '@ant-design/icons';
-    import { Badge, Button, type GetProp, Space } from 'antd';
+    import { Badge, Button, Drawer, type GetProp, Space } from 'antd';
   import useStyle from './style';
 import { useChat } from '../../hooks/useChat';
   const renderTitle = (icon: React.ReactElement, title: string) => (
@@ -84,19 +85,6 @@ import { useChat } from '../../hooks/useChat';
     },
   ];
   
-  const senderPromptsItems: GetProp<typeof Prompts, 'items'> = [
-    {
-      key: '1',
-      description: 'Hot Topics',
-      icon: <FireOutlined style={{ color: '#FF4D4F' }} />,
-    },
-    {
-      key: '2',
-      description: 'Design Guide',
-      icon: <ReadOutlined style={{ color: '#1890FF' }} />,
-    },
-  ];
-  
   const roles: GetProp<typeof Bubble.List, 'roles'> = {
     ai: {
       placement: 'start',
@@ -104,12 +92,24 @@ import { useChat } from '../../hooks/useChat';
       styles: {
         content: {
           borderRadius: 16,
+          '@media (max-width: 768px)': {
+            maxWidth: 'calc(100% - 32px)',
+            wordBreak: 'break-word',
+          },
         },
       },
     },
     local: {
       placement: 'end',
       variant: 'shadow',
+      styles: {
+        content: {
+          '@media (max-width: 768px)': {
+            maxWidth: 'calc(100% - 32px)',
+            wordBreak: 'break-word',
+          },
+        },
+      },
     },
   };
   
@@ -119,6 +119,8 @@ import { useChat } from '../../hooks/useChat';
   
     // ==================== State ====================
     const [headerOpen, setHeaderOpen] = React.useState(false);
+    const [menuCollapsed, setMenuCollapsed] = React.useState(false);
+    const [drawerVisible, setDrawerVisible] = React.useState(false);
   
     const [content, setContent] = React.useState('');
   
@@ -172,18 +174,12 @@ import { useChat } from '../../hooks/useChat';
     const placeholderNode = (
       <Space direction="vertical" size={16} className={styles.placeholder}>
         <Welcome
-          variant="borderless"
-          icon="https://mdn.alipayobjects.com/huamei_iwk9zp/afts/img/A*s5sNRo5LjfQAAAAAAAAAAAAADgCCAQ/fmt.webp"
+
           title="Hello, I'm Ant Design X"
-          description="Base on Ant Design, AGI product interface solution, create a better intelligent vision~"
-          extra={
-            <Space>
-              <Button icon={<ShareAltOutlined />} />
-              <Button icon={<EllipsisOutlined />} />
-            </Space>
-          }
+        
         />
-        <Prompts
+        <div className='w-full'></div>
+        {/* <Prompts
           title="Do you want?"
           items={placeholderPromptsItems}
           styles={{
@@ -195,7 +191,7 @@ import { useChat } from '../../hooks/useChat';
             },
           }}
           onItemClick={onPromptsItemClick}
-        />
+        /> */}
       </Space>
     );
   
@@ -242,38 +238,114 @@ import { useChat } from '../../hooks/useChat';
   
     const logoNode = (
       <div className={styles.logo}>
-        <img
-          src="https://mdn.alipayobjects.com/huamei_iwk9zp/afts/img/A*eco6RrQhxbMAAAAAAAAAAAAADgCCAQ/original"
-          draggable={false}
-          alt="logo"
+        <Button 
+          type="text" 
+          className="menu-toggle" 
+          icon={menuCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          onClick={() => {
+            setMenuCollapsed(!menuCollapsed);
+            // 在移动端点击时打开抽屉
+            if (window.innerWidth <= 768) {
+              setDrawerVisible(!drawerVisible);
+            }
+          }}
         />
-        <span>Ant Design X</span>
       </div>
     );
-  
+
+    // 会话列表内容
+    const conversationsContent = (
+      <>
+        {/* 🌟 添加会话 */}
+        <div className='flex justify-between px-2 mt-4'>
+         {/* 🌟 会话管理 */}
+         <Button 
+            type="default" 
+            size="middle"
+            icon={menuCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={(e) => {
+              // 阻止事件冒泡，避免触发父元素的点击事件
+              e.stopPropagation();
+              setMenuCollapsed(!menuCollapsed);
+            }}
+          />
+        <Button
+          onClick={onAddConversation}
+          className={styles.addBtn}
+          icon={<EditOutlined />}
+          size='middle'
+          type="default" 
+        >
+        </Button>
+        </div>
+        <Conversations
+          items={conversationsItems}
+          className={styles.conversations}
+          activeKey={activeKey}
+          onActiveChange={(key) => {
+            onConversationClick(key);
+            // 在移动端选择会话后关闭抽屉
+            if (window.innerWidth <= 768) {
+              setDrawerVisible(false);
+            }
+          }}
+        />
+      </>
+    );
+  const collapsedMenu = (
+    <div className='absolute top-2 left-2'>
+      <div className='flex justify-between px-2 mt-2'>
+         {/* 🌟 会话管理 */}
+         <Button 
+           type="default" 
+            size="middle"
+            icon={menuCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={(e) => {
+              // 阻止事件冒泡，避免触发父元素的点击事件
+              e.stopPropagation();
+              setMenuCollapsed(!menuCollapsed);
+            }}
+          />
+        <Button
+          onClick={onAddConversation}
+          className={styles.addBtn}
+          icon={<EditOutlined />}
+          size='middle'
+          type="default" 
+        >
+        </Button>
+        </div>
+    </div>
+  );
     // ==================== Render =================
     return (
       <div className={styles.layout}>
-        <div className={styles.menu}>
+        {/* 桌面端显示侧边栏 */}
+        <div className={`${styles.menu} ${menuCollapsed ? 'collapsed' : ''}`}>
           {/* 🌟 Logo */}
-          {logoNode}
-          {/* 🌟 添加会话 */}
-          <Button
-            onClick={onAddConversation}
-            type="link"
-            className={styles.addBtn}
-            icon={<PlusOutlined />}
-          >
-            New Conversation
-          </Button>
-          {/* 🌟 会话管理 */}
-          <Conversations
-            items={conversationsItems}
-            className={styles.conversations}
-            activeKey={activeKey}
-            onActiveChange={onConversationClick}
-          />
+          {/* {logoNode} */}
+          {/* 在桌面端直接显示会话列表 */}
+          {!menuCollapsed && (
+            <div className="desktop-only" style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+              {conversationsContent}
+            </div>
+          )}
+          {menuCollapsed && collapsedMenu}
         </div>
+        
+        {/* 移动端使用抽屉组件 */}
+        <Drawer
+          title="会话列表"
+          placement="left"
+          closable={true}
+          onClose={() => setDrawerVisible(false)}
+          open={drawerVisible}
+          styles={{ header: { borderBottom: '1px solid #f0f0f0' },body: { padding: 0 } }}
+          // 只在移动端显示
+          className="mobile-drawer"
+        >
+          {conversationsContent}
+        </Drawer>
         <div className={styles.chat}>
           {/* 🌟 消息列表 */}
           <Bubble.List
@@ -281,8 +353,6 @@ import { useChat } from '../../hooks/useChat';
             roles={roles}
             className={styles.messages}
           />
-          {/* 🌟 提示词 */}
-          <Prompts items={senderPromptsItems} onItemClick={onPromptsItemClick} />
           {/* 🌟 输入框 */}
           <Sender
             value={content}
@@ -292,6 +362,14 @@ import { useChat } from '../../hooks/useChat';
             prefix={attachmentsNode}
             loading={messages.length > 0 && messages[messages.length - 1].status === 'loading'}
             className={styles.sender}
+            styles={{
+              container: {
+                '@media (max-width: 768px)': {
+                  borderRadius: '16px',
+                  margin: '0 4px 8px'
+                }
+              }
+            }}
           />
         </div>
       </div>
