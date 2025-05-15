@@ -2,75 +2,38 @@ import { Attachments, Bubble, Conversations, Prompts, Sender, Welcome } from '@a
 import React, { useEffect } from 'react';
 import {
   CloudUploadOutlined,
-  CommentOutlined,
-  FireOutlined,
-  HeartOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
-  ReadOutlined,
   EditOutlined,
-  SmileOutlined,
 } from '@ant-design/icons';
-import {  Button, Drawer, type GetProp, Space } from 'antd';
+import { Button, Drawer, type GetProp, Space } from 'antd';
 import useStyle from './style';
 import { useChat } from '../../hooks/useChat';
-const renderTitle = (icon: React.ReactElement, title: string) => (
-  <Space align="start">
-    {icon}
-    <span>{title}</span>
-  </Space>
-);
 
-const defaultConversationsItems = [
-  {
-    key: '0',
-    label: '回答问题1',
-  },
-];
-
-const placeholderPromptsItems: GetProp<typeof Prompts, 'items'> = [
-  {
-    key: '1',
-    label: renderTitle(<FireOutlined style={{ color: '#FF4D4F' }} />, 'Hot Topics'),
-    description: 'What are you interested in?',
-    children: [
-      {
-        key: '1-1',
-        description: `What's new in X?`,
-      },
-      {
-        key: '1-2',
-        description: `What's AGI?`,
-      },
-      {
-        key: '1-3',
-        description: `Where is the doc?`,
-      },
-    ],
-  },
-  {
-    key: '2',
-    label: renderTitle(<ReadOutlined style={{ color: '#1890FF' }} />, 'Design Guide'),
-    description: 'How to design a good product?',
-    children: [
-      {
-        key: '2-1',
-        icon: <HeartOutlined />,
-        description: `Know the well`,
-      },
-      {
-        key: '2-2',
-        icon: <SmileOutlined />,
-        description: `Set the AI role`,
-      },
-      {
-        key: '2-3',
-        icon: <CommentOutlined />,
-        description: `Express the feeling`,
-      },
-    ],
-  },
-];
+const defaultConversationsItems = (() => {
+  const allChats = localStorage.getItem('chat_sessions');
+  if (allChats) {
+    try {
+      const sessions = JSON.parse(allChats);
+      return Object.entries(sessions).map(([key, messages]) => {
+        if (Array.isArray(messages) && messages.length > 0 && messages[0].message) {
+          return {
+            key,
+            label: messages[0].message.substring(0, 6) || `会话${key}`
+          };
+        }
+        return {
+          key,
+          label: `会话${key}`
+        };
+      });
+    } catch {}
+  }
+  return [{
+    key: '0', 
+    label: '回答问题1'
+  }];
+})();
 
 const roles: GetProp<typeof Bubble.List, 'roles'> = {
   ai: {
@@ -79,7 +42,7 @@ const roles: GetProp<typeof Bubble.List, 'roles'> = {
     styles: {
       content: {
         borderRadius: 16,
-        '@media (max-width: 768px)': {
+        '@media (maxWidth: 768px)': {
           maxWidth: 'calc(100% - 32px)',
           wordBreak: 'break-word',
         },
@@ -91,7 +54,7 @@ const roles: GetProp<typeof Bubble.List, 'roles'> = {
     variant: 'shadow',
     styles: {
       content: {
-        '@media (max-width: 768px)': {
+        '@media (maxWidth: 768px)': {
           maxWidth: 'calc(100% - 32px)',
           wordBreak: 'break-word',
         },
@@ -108,7 +71,7 @@ const Independent: React.FC = () => {
   const [headerOpen, setHeaderOpen] = React.useState(false);
   const [menuCollapsed, setMenuCollapsed] = React.useState(false);
   const [drawerVisible, setDrawerVisible] = React.useState(false);
-
+  const [isMobile, setIsMobile] = React.useState();
   const [content, setContent] = React.useState('');
 
   const [conversationsItems, setConversationsItems] = React.useState(defaultConversationsItems);
@@ -118,13 +81,29 @@ const Independent: React.FC = () => {
   const [attachedFiles, setAttachedFiles] = React.useState<GetProp<typeof Attachments, 'items'>>(
     [],
   );
-
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
   // ==================== Runtime ====================
   const { onRequest, messages, setMessages } = useChat(activeKey);
 
   useEffect(() => {
     if (activeKey !== undefined) {
-      setMessages([]);
+      const allChats = window.localStorage.getItem('chat_sessions');
+      try {
+        const sessions = allChats ? JSON.parse(allChats) : {};
+        const saved = sessions[activeKey] || [];
+        setMessages(saved);
+      } catch {
+        setMessages([]);
+      }
     }
   }, [activeKey]);
 
@@ -151,22 +130,20 @@ const Independent: React.FC = () => {
   };
 
   const onConversationClick: GetProp<typeof Conversations, 'onActiveChange'> = (key) => {
-    setActiveKey(key);
+      setActiveKey(key);
+      const historyMsg = window.localStorage.getItem(`chat_${key}`);  // 使用新的key而不是旧的activeKey
+      try {
+        const parsed = historyMsg ? JSON.parse(historyMsg) : [];
+        setMessages(parsed);
+      } catch {
+        setMessages([]);
+      }
   };
 
   const handleFileChange: GetProp<typeof Attachments, 'onChange'> = (info) =>
     setAttachedFiles(info.fileList);
 
   // ==================== Nodes ====================
-  const placeholderNode = (
-    <Space direction="vertical" size={24} className={styles.placeholder}>
-      <Welcome
-        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform"
-        title="Hello, I'm Ant Design X"
-      />
-      <div className="w-full"></div>
-    </Space>
-  );
 
   const items: GetProp<typeof Bubble.List, 'items'> = messages.map(({ id, message, status }) => ({
     key: id,
@@ -203,22 +180,6 @@ const Independent: React.FC = () => {
     </Sender.Header>
   );
 
-  const logoNode = (
-    <div className={styles.logo}>
-      <Button
-        type="text"
-        className="menu-toggle"
-        icon={menuCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-        onClick={() => {
-          setMenuCollapsed(!menuCollapsed);
-          // 在移动端点击时打开抽屉
-          if (window.innerWidth <= 768) {
-            setDrawerVisible(!drawerVisible);
-          }
-        }}
-      />
-    </div>
-  );
 
   // 会话列表内容
   const conversationsContent = (
@@ -233,7 +194,11 @@ const Independent: React.FC = () => {
           onClick={(e) => {
             // 阻止事件冒泡，避免触发父元素的点击事件
             e.stopPropagation();
-            setMenuCollapsed(!menuCollapsed);
+            if(isMobile){
+              setDrawerVisible(!drawerVisible);
+            }else{
+              setMenuCollapsed(!menuCollapsed);
+            }
           }}
         />
         <Button
@@ -282,31 +247,54 @@ const Independent: React.FC = () => {
       </div>
     </div>
   );
+  const mobileMenu = (
+    <div className="w-screen">
+      <div className="mt-4 flex justify-between px-4">
+        {/* 🌟 会话管理 */}
+        <Button
+          type="default"
+          size="middle"
+          icon={menuCollapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+          onClick={() => {
+            setDrawerVisible(!drawerVisible);
+          }}
+        />
+        <Button
+          onClick={onAddConversation}
+          // className={styles.addBtn}
+          icon={<EditOutlined />}
+          size="middle"
+          type="default"
+        ></Button>
+      </div>
+    </div>
+  );
   // ==================== Render =================
   return (
     <div className={styles.layout}>
-      {/* 桌面端显示侧边栏 */}
-      <div className={`${styles.menu} ${menuCollapsed ? 'collapsed' : ''}`}>
-        {/* 在桌面端直接显示会话列表 */}
-        {!menuCollapsed && (
-          <div
-            className="desktop-only"
-            style={{ display: 'flex', flexDirection: 'column', flex: 1 }}
-          >
-            {conversationsContent}
-          </div>
-        )}
-        {menuCollapsed && collapsedMenu}
-      </div>
-
+      {!isMobile && (
+        <div className={`${styles.menu} ${menuCollapsed ? 'collapsed' : ''}`}>
+          {/* 在桌面端直接显示会话列表 */}
+          {!menuCollapsed && (
+            <div
+              className="desktop-only"
+              style={{ display: 'flex', flexDirection: 'column', flex: 1 }}
+            >
+              {conversationsContent}
+            </div>
+          )}
+          {menuCollapsed && collapsedMenu}
+        </div>
+      )}
+      {isMobile && mobileMenu}
       {/* 移动端使用抽屉组件 */}
       <Drawer
-        title="会话列表"
         placement="left"
-        closable={true}
-        onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
-        styles={{ header: { borderBottom: '1px solid #f0f0f0' }, body: { padding: 0 } }}
+        styles={{ body: { padding: 0 } }}
+        title={null}
+        closable={false}
+        width={200}
         // 只在移动端显示
         className="mobile-drawer"
       >
@@ -318,8 +306,8 @@ const Independent: React.FC = () => {
           <Bubble.List items={items} roles={roles} className={styles.messages} />
         )}
         {items.length === 0 && (
-          <div className="absolute left-1/2 -translate-x-1/2 top-1/3 -translate-y-1/2 flex justify-center">
-            <span className='text-center text-[28px]'>有什么可以帮忙的？</span>
+          <div className="absolute left-1/2 top-1/3 flex -translate-x-1/2 -translate-y-1/2 justify-center">
+            <span className="text-center text-2xl text-nowrap">有什么可以帮忙的？</span>
           </div>
         )}
         {/* 🌟 输入框 */}
@@ -332,7 +320,7 @@ const Independent: React.FC = () => {
           className={styles.sender}
           styles={{
             container: {
-              '@media (max-width: 768px)': {
+              '@media (maxWidth: 768px)': {
                 borderRadius: '16px',
                 margin: '0 4px 8px',
               },

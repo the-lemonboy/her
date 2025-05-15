@@ -64,12 +64,6 @@ const useStyle = createStyles(({ token, css }) => {
         flex: 1;
         overflow-y: auto;
       `,
-    // btnCollapsed: css`
-    //     position: absolute;
-    //     left: 0;
-    //     top: 0;
-    //     width:50px;
-    //   `,
     chat: css`
         height: 100%;
         width: 100%;
@@ -86,6 +80,7 @@ const useStyle = createStyles(({ token, css }) => {
           max-width: 100%;
           flex: 1;
           overflow: hidden;
+          height: calc(100vh - 60px);
         }
       `,
     messages: css`
@@ -111,7 +106,16 @@ const useStyle = createStyles(({ token, css }) => {
         transform: translate(-50%,-50%);
         width: calc(100% - 24px);
         @media (max-width: 768px) {
-          margin-top: auto;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          margin:20px auto;
+          width: 90%;
+          padding: 8px 12px;
+          background: ${token.colorBgContainer};
+          border-top: 1px solid ${token.colorBorder};
+          transform: none;
         }
       `,
     logo: css`
