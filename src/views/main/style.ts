@@ -100,10 +100,6 @@ const useStyle = createStyles(({ token, css }) => {
       `,
     sender: css`
         box-shadow: ${token.boxShadow};
-        position: absolute;
-        bottom: 50%;
-        left:50%;
-        transform: translate(-50%,-50%);
         width: calc(100% - 24px);
         @media (max-width: 768px) {
           position: fixed;

@@ -306,8 +306,8 @@ const Independent: React.FC = () => {
           <Bubble.List items={items} roles={roles} className={styles.messages} />
         )}
         {items.length === 0 && (
-          <div className="absolute left-1/2 top-1/3 flex -translate-x-1/2 -translate-y-1/2 justify-center">
-            <span className="text-center text-2xl text-nowrap">有什么可以帮忙的？</span>
+          <div className="justify-center flex flex-1 items-center">
+            <span className="text-center text-2xl text-nowrap justify-center">有什么可以帮忙的？</span>
           </div>
         )}
         {/* 🌟 输入框 */}
